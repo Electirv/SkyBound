@@ -6,7 +6,8 @@ let charaterImg, tileImg,collectableSheet;
 let Mario, groundSensor, counter, enemy, checkpoint, titleImg, endImg;
 //stats/values
 let JumpY, jumpCount,tileSize, bounces, cloudy,
-	coinScore,orbScore,slowScale,orbs,lives, titleScreen, endScreen;
+	coinScore,orbScore,slowScale,orbs,lives, titleScreen, 
+	endScreen, grounded;
 //powers
 let timeAmount, timeSlowable, maxTime, accellerate, recharge;
 
@@ -315,6 +316,7 @@ function setup() {
 	recharge = false
 	titleScreen = true;
 	endScreen = false;
+	grounded = false;
 	/**for sensing ground beneath player
 	taken from platformer on p5play**/
 	groundSensor = new Sprite(48, 106, 6, 12, 'n');
@@ -334,29 +336,24 @@ function setup() {
 	tiles()
 
 }
+function groundSensing(){
+if ((groundSensor.overlapping(floor) || 
+	groundSensor.overlapping(bouncyClouds) || 
+	(kb.pressing('c')&&groundSensor.overlapping(timeClouds)))){
+	grounded = true;
+}
+else{
+	grounded = false;
+}
+	
+}
 
 //playermovement
 function movement(){
 	//Jumping
-	if (groundSensor.overlapping(floor) || jumpCount < 1 ) {
+	if (grounded || jumpCount < 1 ) {
 		if (kb.presses('up') || kb.presses('space')) {
-			
-			Mario.vel.y = JumpY;
-			jumpCount++;
-			
-		}
-	}
-	if (groundSensor.overlapping(timeClouds) && kb.pressing('c')) {
-		if (kb.presses('up') || kb.presses('space')) {
-			
-			Mario.vel.y = JumpY;
-			jumpCount++;
-			
-		}
-	}
-	if (groundSensor.overlapping(bouncyClouds) || jumpCount < 1) {
-		if (kb.presses('up') || kb.presses('space')) {
-			if(cloudy == true){
+			if(cloudy){
 				Mario.vel.y = JumpY * 1.5;
 			}
 			else{
@@ -364,6 +361,7 @@ function movement(){
 			}
 			jumpCount++;
 			bounces = 0;
+			
 		}
 	}
 	//left and right movement
@@ -404,23 +402,19 @@ function movement(){
 //terrain/enviro effects
 function effects(){
 	//clouds / bouncing on bouncy clouds
-	if (groundSensor.overlapping(floor) || groundSensor.overlapping(bouncyClouds)){
-		jumpCount = 0;
-		
-	}
-	if (groundSensor.overlapping(timeClouds) && kb.pressing('c')){
+	if (grounded){
 		jumpCount = 0;
 		
 	}
 
-	if (bounces <3 && cloudy===true){
+	if (bounces <3 && cloudy){
 		Mario.bounciness =1;
 	}
 	else{
 		Mario.bounciness = 0;
 	}
 	
-	if (groundSensor.overlap(clouds)){
+	if (groundSensor.overlap(clouds) && cloudy){
 		bounces ++;
 	}
 }
@@ -428,9 +422,9 @@ function effects(){
 //powers
 function powers(){
 	//Timeslow power
-	if (timeSlowable===true){
+	if (timeSlowable){
 		counter.visible = true;
-		if (kb.pressing('c') && recharge === false) {
+		if (kb.pressing('c') && !recharge) {
 			world.timeScale = slowScale;
 			timeClouds.opacity = 1;
 			timeClouds.collide(Mario);
@@ -457,7 +451,7 @@ function powers(){
 				leftPilCloud.ani.frameDelay = 5;
 			}
 			
-			if(accellerate===false){
+			if(!accellerate){
 				Mario.vel.x *=1.5;
 			}
 			else if(!kb.pressing('v')){
@@ -474,7 +468,7 @@ function powers(){
 					timeAmount += 0.125;
 				}
 			}
-			else if(accellerate === true){
+			else if(accellerate){
 				if (timeAmount <125){
 					timeAmount += 0.125;
 				}
@@ -482,8 +476,8 @@ function powers(){
 		}
 	}
 	//Time acceleration power activate after slow
-	if (accellerate===true){
-		if (kb.pressing('v') && recharge === false) {
+	if (accellerate){
+		if (kb.pressing('v') && !recharge && grounded) {
 			world.timeScale = 0.75;
 			timeAmount-=0.4;
 			Mario.vel.x *=3;
@@ -604,15 +598,11 @@ function death(){
 //}
 
 function aniChange(){
-	if (Mario.vel.x==0&&Mario.vel.y==0 &&
-		recharge === false&& 
-		groundSensor.overlapping(floor) || 
-		groundSensor.overlapping(bouncyClouds) || 
-		groundSensor.overlapping(timeClouds)){
-		if(kb.pressing('v') && accellerate === true ){
+	if (Mario.vel.x==0&&Mario.vel.y==0 && grounded ){
+		if(!recharge&&kb.pressing('v') && accellerate){
 			Mario.changeAni('acelIdle');
 		}
-		else if(kb.pressing('c')&& timeSlowable === true){
+		else if(!recharge&&kb.pressing('c')&& timeSlowable){
 			Mario.changeAni('slowIdle');
 		}
 		else{
@@ -621,19 +611,13 @@ function aniChange(){
 		Mario.ani.frameDelay = 9;
 	}
 	else{
-		if(kb.pressing('v')&& accellerate === true && 
-		(groundSensor.overlapping(floor) || 
-		groundSensor.overlapping(bouncyClouds) || 
-		groundSensor.overlapping(timeClouds)) &&
-		recharge === false){
+		if(kb.pressing('v')&& accellerate 
+		&& grounded && !recharge){
 			Mario.changeAni('acelRun');
 			Mario.ani.frameDelay = 0;
 		}
-		else if(kb.pressing('c')&& timeSlowable === true&& 
-		(groundSensor.overlapping(floor) || 
-		groundSensor.overlapping(bouncyClouds) || 
-		groundSensor.overlapping(timeClouds)) &&
-		recharge === false){
+		else if(kb.pressing('c')&& timeSlowable 
+		&& grounded && !recharge){
 			Mario.changeAni('slowRun');
 			Mario.ani.frameDelay = 4;
 		}
@@ -652,7 +636,7 @@ function aniChange(){
 function draw() {
 	
 	Mario.spriteSheet = 'photos/characterSheet.png';
-	if (titleScreen === true){
+	if (titleScreen){
 		titleImg.x = camera.x;
 		titleImg.y = camera.y;
 		titleImg.img = 'photos/titleScreen.png';
@@ -665,13 +649,14 @@ function draw() {
 			
 		}
 	}
-	if (titleScreen === false && endScreen === false){	
+	if (!titleScreen && !endScreen){	
 		groundSensor.x = Mario.x;
 		groundSensor.y=Mario.y+6;
 		counter.w = timeAmount*0.75;
 		counter.y=camera.y - 110;	
 		timeOrb.frameDelay = 5;
 		background('skyblue');
+		groundSensing()
 		movement();
 		cameraRaise();
 		//enemyMovement();
@@ -684,7 +669,7 @@ function draw() {
 		titleImg.overlapping(Mario);
 		endImg.overlapping(Mario);
 	}
-	if (endScreen === true){
+	if (endScreen){
 		endImg.visible = true;
 		endImg.img = 'photos/gameOver.png';
 		endImg.x = camera.x;
