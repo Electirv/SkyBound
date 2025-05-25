@@ -17,7 +17,6 @@ function preload() {
 	collectableImg = loadImage("photos/collectableSheet.png");
 }
 function tiles(){
-	
 	//floor group for all floor tiles
 	floor = new Group();
 	floor.w = 20;
